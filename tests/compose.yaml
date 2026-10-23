@@ -1,0 +1,35 @@
+# Overlay for tests/smoke.sh: the production proxy in front of two stub apps,
+# isolated from a real deployment by its own network, subnet and loopback ports.
+services:
+  haproxy:
+    ports: !override
+      - "127.0.0.1:18080:8080"
+      - "127.0.0.1:18443:8443"
+    networks: !override
+      webserver:
+        ipv4_address: 172.31.251.2
+
+  vault:
+    image: &caddy caddy:2.11-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
+    environment: {NAME: vault, SITE: vault.test, EDGE_PROXY_CIDR: 172.31.251.2/32}
+    volumes: [./tests/stub.Caddyfile:/etc/caddy/Caddyfile:ro]
+    networks:
+      webserver:
+        aliases: [vault]
+
+  amoeba:
+    image: *caddy
+    environment: {NAME: amoeba, SITE: amoeba.test, EDGE_PROXY_CIDR: 172.31.251.2/32}
+    volumes: [./tests/stub.Caddyfile:/etc/caddy/Caddyfile:ro]
+    networks:
+      webserver:
+        aliases: [amoeba]
+
+networks:
+  webserver:
+    name: webserver-test
+    ipam:
+      config: !override
+        - subnet: 172.31.251.0/24
+          ip_range: 172.31.251.128/25
+          gateway: 172.31.251.1

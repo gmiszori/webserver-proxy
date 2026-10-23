@@ -1,0 +1,23 @@
+# Stands in for an app's public Caddy: same PROXY-protocol trust setup, and
+# each response names the app and the client address Caddy believes in.
+{
+	admin off
+	skip_install_trust
+	servers {
+		listener_wrappers {
+			proxy_protocol {
+				allow {$EDGE_PROXY_CIDR}
+			}
+			tls
+		}
+	}
+}
+
+https://{$SITE} {
+	tls internal
+	respond "{$NAME} https {remote_host}"
+}
+
+http://{$SITE} {
+	respond "{$NAME} http {remote_host}"
+}

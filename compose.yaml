@@ -1,0 +1,46 @@
+name: webserver
+
+services:
+  haproxy:
+    image: haproxy:3.2-alpine@sha256:dfba86f031bd4c9039f10f8cc5de75991d1b6766d5460f0335b980408503baad
+    restart: unless-stopped
+    environment:
+      VAULT_DOMAIN: ${VAULT_DOMAIN:-vault.miszori.dev}
+      AMOEBA_DOMAIN: ${AMOEBA_DOMAIN:?Set AMOEBA_DOMAIN in .env}
+    # Unprivileged listeners inside the container; the host side is 80/443.
+    ports:
+      - "${PUBLIC_BIND_IP:?Set the host public-facing interface IP}:80:8080"
+      - "${PUBLIC_BIND_IP}:443:8443"
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    networks:
+      webserver:
+        # The apps accept PROXY headers from this address only.
+        ipv4_address: 172.31.250.2
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 100
+    mem_limit: 128m
+    ulimits:
+      core: 0
+      # Two descriptors per proxied connection at maxconn 4096, plus headroom.
+      nofile: {soft: 10240, hard: 10240}
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+
+networks:
+  # Shared with every app's public Caddy, which joins it as an external
+  # network under the alias haproxy.cfg routes to.
+  webserver:
+    name: webserver
+    ipam:
+      config:
+        - subnet: 172.31.250.0/24
+          # Apps get dynamic addresses from the upper half only, so one that
+          # starts first can never take the proxy's fixed address.
+          ip_range: 172.31.250.128/25
+          gateway: 172.31.250.1

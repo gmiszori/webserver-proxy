@@ -1,7 +1,9 @@
-# webserver
+# webserver-proxy
 
-The shared front door for the sites on this VPS. One HAProxy container owns
-host ports 80 and 443 and hands each connection to the right app by hostname:
+A shared front door for several Docker Compose sites on one VPS. One HAProxy
+container owns host ports 80 and 443 and hands each connection to the right
+app by hostname. TLS is passed through untouched, so every app keeps its own
+Caddy, certificates and security headers, and still sees real client IPs.
 
 ```
                     :80 / :443  (PUBLIC_BIND_IP)
@@ -17,10 +19,10 @@ host ports 80 and 443 and hands each connection to the right app by hostname:
             └────────────┘ └────────────┘
 ```
 
-The apps live in their own repositories and deploy independently:
-
-- [vault.miszori.dev](https://github.com/gmiszori/vault.miszori.dev)
-- [amoeba](https://github.com/gmiszori/amoeba)
+It currently fronts two sites, each in its own repository and deployed
+independently: vault (end-to-end encrypted file sharing) and amoeba (an online
+five-in-a-row game). Any site with its own Caddy can join; see
+[Adding a site](#adding-a-site).
 
 ## How it works
 
@@ -50,7 +52,7 @@ Deploy this first: it creates the shared `webserver` network that the apps
 join as an external network.
 
 ```bash
-git clone https://github.com/gmiszori/webserver && cd webserver
+git clone https://github.com/gmiszori/webserver-proxy && cd webserver-proxy
 cp .env.example .env   # set PUBLIC_BIND_IP and the app domains
 docker compose up -d
 ```
@@ -122,3 +124,14 @@ isolated network and loopback ports `18080`/`18443`. It checks routing by SNI
 and `Host`, rejection of unknown names, that the apps see the client rather
 than the proxy, and that a spoofed PROXY header from another container is not
 trusted. It needs only Docker, and CI runs it on every push.
+
+## Naming
+
+The repository is `webserver-proxy`. The Compose project and the shared Docker
+network are still called `webserver`, because the apps join that network by
+name. Renaming it means changing every app's compose file and redeploying all
+of them together.
+
+## License
+
+[MIT](LICENSE)

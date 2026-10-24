@@ -25,6 +25,14 @@ services:
       webserver:
         aliases: [amoeba]
 
+  mensa:
+    image: *caddy
+    environment: {NAME: mensa, SITE: mensa.test, EDGE_PROXY_CIDR: 172.31.251.2/32}
+    volumes: [./tests/stub.Caddyfile:/etc/caddy/Caddyfile:ro]
+    networks:
+      webserver:
+        aliases: [mensa]
+
 networks:
   webserver:
     name: webserver-test

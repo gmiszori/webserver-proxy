@@ -3,7 +3,7 @@
 set -eu
 cd "$(dirname "$0")/.."
 
-export PUBLIC_BIND_IP=127.0.0.1 VAULT_DOMAIN=vault.test AMOEBA_DOMAIN=amoeba.test
+export PUBLIC_BIND_IP=127.0.0.1 VAULT_DOMAIN=vault.test AMOEBA_DOMAIN=amoeba.test MENSA_DOMAIN=mensa.test
 PROXY_IP=172.31.251.2
 compose() { docker compose --env-file /dev/null -p webserver-test -f compose.yaml -f tests/compose.yaml "$@"; }
 trap 'compose down -v >/dev/null 2>&1 || true' EXIT
@@ -26,14 +26,16 @@ http_get() { curl -s --max-time 5 -H "Host: $1" http://127.0.0.1:18080/ || true;
 
 # The stubs issue their internal certificates right after start.
 for _ in $(seq 30); do
-	case "$(https_get vault.test)$(https_get amoeba.test)" in *https*https*) break ;; esac
+	case "$(https_get vault.test)$(https_get amoeba.test)$(https_get mensa.test)" in *https*https*https*) break ;; esac
 	sleep 1
 done
 
 check "https by SNI reaches vault" 'vault https *' "$(https_get vault.test)"
 check "https by SNI reaches amoeba" 'amoeba https *' "$(https_get amoeba.test)"
+check "https by SNI reaches mensa" 'mensa https *' "$(https_get mensa.test)"
 check "http by Host reaches vault" 'vault http *' "$(http_get vault.test)"
 check "http by Host reaches amoeba" 'amoeba http *' "$(http_get amoeba.test)"
+check "http by Host reaches mensa" 'mensa http *' "$(http_get mensa.test)"
 check "unknown SNI is closed" '' "$(https_get unknown.test)"
 check "unknown Host is closed" '' "$(http_get unknown.test)"
 

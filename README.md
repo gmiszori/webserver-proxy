@@ -6,7 +6,7 @@ by hostname and passes TLS through untouched, so every site keeps its own
 certificates and still sees its visitors' real IP addresses. The code was
 written with AI under my direction.
 
-![Terminal running the smoke test: HAProxy starts in front of two stub sites, and seven checks pass, covering routing by SNI and Host, closing unknown hostnames, and ignoring a spoofed PROXY header](docs/images/demo.gif)
+![Terminal running the smoke test: HAProxy starts in front of two stub sites, and nine checks pass, covering routing by SNI and Host, closing unknown hostnames, and ignoring a spoofed PROXY header](docs/images/demo.gif)
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![HAProxy](https://img.shields.io/badge/proxy-HAProxy-106DA9)
@@ -41,27 +41,30 @@ locally, start the proxy in front of two stub sites:
 ```
 
 It uses the production `haproxy.cfg` on loopback ports 18080 and 18443, runs
-seven checks, and removes everything again. The same script is the test suite,
+nine checks, and removes everything again. The same script is the test suite,
 and CI runs it on every push.
 
 ## How it works
 
 ```
-                    :80 / :443  (PUBLIC_BIND_IP)
-                         │
-              ┌──────────▼──────────┐
-              │  haproxy            │  routes by SNI (443) / Host (80)
-              │  172.31.250.2       │  adds a PROXY v2 header
-              └────┬───────────┬────┘
-       "webserver" │ network   │
-            ┌──────▼─────┐ ┌───▼────────┐
-            │ vault      │ │ amoeba     │  each site's own Caddy:
-            │ Caddy      │ │ Caddy      │  certificates, TLS, headers
-            └────────────┘ └────────────┘
+                :80 / :443  (PUBLIC_BIND_IP)
+                              │
+                   ┌──────────▼──────────┐
+                   │  haproxy            │  routes by SNI (443) / Host (80)
+                   │  172.31.250.2       │  adds a PROXY v2 header
+                   └──────────┬──────────┘
+                              │  "webserver" network
+            ┌─────────────────┼─────────────────┐
+     ┌──────▼─────┐    ┌──────▼─────┐    ┌──────▼─────┐
+     │ vault      │    │ amoeba     │    │ mensa      │
+     │ Caddy      │    │ Caddy      │    │ Caddy      │
+     └────────────┘    └────────────┘    └────────────┘
+       each site's own Caddy: certificates, TLS, headers
 ```
 
-It currently fronts two sites, each in its own repository: vault (end-to-end
-encrypted file sharing) and amoeba (an online five-in-a-row game). HAProxy
+It currently fronts three sites, each in its own repository: vault
+(end-to-end encrypted file sharing), amoeba (an online five-in-a-row game) and
+mensa (the day's menus of the ETH, UZH and other Zurich canteens). HAProxy
 forwards TCP only, so the sites don't offer HTTP/3.
 
 | Path | What |
@@ -137,6 +140,7 @@ timings and bytes.
 | `PUBLIC_BIND_IP` | – | A specific local interface address for 80/443; the LAN address behind NAT, never `0.0.0.0`. |
 | `VAULT_DOMAIN` | `vault.miszori.dev` | Must match vault's `DOMAIN`. |
 | `AMOEBA_DOMAIN` | – | Must match amoeba's `DOMAIN`. |
+| `MENSA_DOMAIN` | `mensa.miszori.dev` | Must match mensa's `DOMAIN`. |
 
 The shared network is `172.31.250.0/24`. The proxy has the fixed address
 `.2`, and sites get dynamic addresses from `.128/25`. If the subnet clashes

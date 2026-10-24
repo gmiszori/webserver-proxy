@@ -7,6 +7,7 @@ services:
     environment:
       VAULT_DOMAIN: ${VAULT_DOMAIN:-vault.miszori.dev}
       AMOEBA_DOMAIN: ${AMOEBA_DOMAIN:?Set AMOEBA_DOMAIN in .env}
+      MENSA_DOMAIN: ${MENSA_DOMAIN:-mensa.miszori.dev}
     # Unprivileged listeners inside the container; the host side is 80/443.
     ports:
       - "${PUBLIC_BIND_IP:?Set the host public-facing interface IP}:80:8080"

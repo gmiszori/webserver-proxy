@@ -172,8 +172,11 @@ it means changing every site and redeploying them all together.
 
 When deploying, keep real values in `.env`, which git ignores, and merge
 Dependabot's image updates promptly. If a site's DNS goes through Cloudflare's
-proxy (orange cloud), sites see Cloudflare's addresses instead of visitors';
-use "DNS only" to keep real IPs.
+proxy (orange cloud), the PROXY header carries Cloudflare's address instead of
+the visitor's. Either use "DNS only", or have the site's Caddy trust
+`CF-Connecting-IP` from [Cloudflare's ranges](https://www.cloudflare.com/ips/)
+alone (`trusted_proxies static …` and `client_ip_headers CF-Connecting-IP`)
+and use `{client_ip}` instead of `{remote_host}`.
 
 ## License
 

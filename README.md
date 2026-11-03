@@ -173,6 +173,7 @@ included.
 | `VAULT_DOMAIN` | `vault.miszori.dev` | Must match vault's `DOMAIN`. |
 | `AMOEBA_DOMAIN` | – | Must match amoeba's `DOMAIN`. |
 | `MENSA_DOMAIN` | `mensa.miszori.dev` | Must match mensa's `DOMAIN`. |
+| `AMOEBA_MAX_CONNS` | `1500` | Most HTTPS connections amoeba may hold. Its game connections stay open for hours, and all sites share 4096, so this keeps room for the others. |
 
 The shared network is `172.31.250.0/24`. The proxy has the fixed address
 `.2`, and sites get dynamic addresses from `.128/25`. If the subnet clashes

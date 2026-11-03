@@ -3,7 +3,7 @@
 set -eu
 cd "$(dirname "$0")/.."
 
-export PUBLIC_BIND_IP=127.0.0.1 VAULT_DOMAIN=vault.test AMOEBA_DOMAIN=amoeba.test MENSA_DOMAIN=mensa.test
+export PUBLIC_BIND_IP=127.0.0.1 VAULT_DOMAIN=vault.test AMOEBA_DOMAIN=amoeba.test MENSA_DOMAIN=mensa.test AMOEBA_MAX_CONNS=2
 PROXY_IP=172.31.251.2
 compose() { docker compose --env-file /dev/null -p webserver-test -f compose.yaml -f tests/compose.yaml "$@"; }
 trap 'compose down -v >/dev/null 2>&1 || true' EXIT
@@ -38,6 +38,17 @@ check "http by Host reaches amoeba" 'amoeba http *' "$(http_get amoeba.test)"
 check "http by Host reaches mensa" 'mensa http *' "$(http_get mensa.test)"
 check "unknown SNI is closed" '' "$(https_get unknown.test)"
 check "unknown Host is closed" '' "$(http_get unknown.test)"
+
+# amoeba may hold AMOEBA_MAX_CONNS (2) connections; then it is refused, and the
+# other sites still answer.
+hold() { (sleep 6 | openssl s_client -quiet -connect 127.0.0.1:18443 -servername amoeba.test >/dev/null 2>&1) & }
+hold
+hold
+sleep 2
+check "amoeba over its connection cap is closed" '' "$(https_get amoeba.test)"
+check "vault answers while amoeba is full" 'vault https *' "$(https_get vault.test)"
+wait
+check "amoeba answers again below its cap" 'amoeba https *' "$(https_get amoeba.test)"
 
 # Another container on the shared network must not be able to claim a client
 # address: only the proxy's PROXY headers are trusted.

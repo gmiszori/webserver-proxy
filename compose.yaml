@@ -8,6 +8,8 @@ services:
       VAULT_DOMAIN: ${VAULT_DOMAIN:-vault.miszori.dev}
       AMOEBA_DOMAIN: ${AMOEBA_DOMAIN:?Set AMOEBA_DOMAIN in .env}
       MENSA_DOMAIN: ${MENSA_DOMAIN:-mensa.miszori.dev}
+      # Most HTTPS connections amoeba may hold of maxconn (4096) in haproxy.cfg.
+      AMOEBA_MAX_CONNS: ${AMOEBA_MAX_CONNS:-1500}
     # Unprivileged listeners inside the container; the host side is 80/443.
     ports:
       - "${PUBLIC_BIND_IP:?Set the host public-facing interface IP}:80:8080"

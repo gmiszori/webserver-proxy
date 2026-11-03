@@ -133,6 +133,38 @@ timings and bytes.
    `.env`, `.env.example` and `compose.yaml`.
 4. Run `docker compose up -d` to restart the proxy.
 
+### Cloudflare-only firewall
+
+When every site's DNS goes through Cloudflare's proxy (orange cloud),
+[`firewall/cloudflare-only.sh`](firewall/cloudflare-only.sh) closes ports 80
+and 443 on `PUBLIC_BIND_IP` to everyone else, so nobody can skip Cloudflare by
+using the server's address. Docker forwards published ports past ufw, so the
+rules go in Docker's `DOCKER-USER` chain. SSH and WireGuard are not affected.
+
+Try it once by hand; a reboot or `sudo ./firewall/cloudflare-only.sh remove`
+undoes it:
+```bash
+sudo ./firewall/cloudflare-only.sh
+```
+Check that every site still loads, and that a direct connection now times out
+(from another machine):
+```bash
+curl -k --max-time 10 --resolve mensa.miszori.dev:443:<server-IP> https://mensa.miszori.dev
+```
+Then keep it across reboots and Docker restarts:
+```bash
+sed "s#@DIR@#$PWD#g" firewall/cloudflare-only.service | sudo tee /etc/systemd/system/cloudflare-only.service
+sudo systemctl daemon-reload && sudo systemctl enable --now cloudflare-only
+```
+
+The ranges are in [`firewall/cloudflare-ips-v4.txt`](firewall/cloudflare-ips-v4.txt).
+Every Monday the "Cloudflare IPs" workflow compares them, and the
+`trusted_proxies` ranges in each site's Caddyfile, with Cloudflare's published
+list and opens an issue if any differ. Then update the files and run
+`git pull && sudo systemctl restart cloudflare-only` on the server. A site
+switched to "DNS only" stops working while this is on, certificate renewals
+included.
+
 ### Configuration (`.env`)
 
 | Variable | Default | |

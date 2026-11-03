@@ -1,0 +1,46 @@
+name: Cloudflare IPs
+on:
+  schedule:
+    - cron: '23 6 * * 1' # Mondays
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - firewall/**
+      - .github/workflows/cloudflare-ips.yml
+permissions:
+  contents: read
+  issues: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compare with Cloudflare's published ranges
+        run: |
+          set +e
+          ./firewall/check-cloudflare-ips.sh > report.md
+          echo "status=$?" >> "$GITHUB_ENV"
+          cat report.md
+      # Exit code 1 means a list differs; anything else is the check itself failing.
+      - name: Open an issue if a list differs
+        if: env.status == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          title="Cloudflare's IP ranges changed"
+          if [ -z "$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[].number')" ]; then
+            {
+              echo "Cloudflare's published ranges (https://www.cloudflare.com/ips/) no longer match these copies."
+              echo "Lines with \`-\` are missing here, lines with \`+\` are no longer Cloudflare's."
+              echo
+              cat report.md
+              echo "After updating \`firewall/cloudflare-ips-v4.txt\`, run \`git pull && sudo systemctl restart cloudflare-only\` on the server."
+            } > body.md
+            gh issue create --title "$title" --body-file body.md
+          fi
+      - if: env.status != '0'
+        run: exit 1

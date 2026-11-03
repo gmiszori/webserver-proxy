@@ -1,0 +1,17 @@
+# Applies cloudflare-only.sh whenever Docker starts: at boot, on a restart, and
+# when Docker is stopped and started again (package upgrades do this). Install
+# with @DIR@ replaced by this repository's path (see the README).
+[Unit]
+Description=Allow only Cloudflare to reach ports 80 and 443
+After=docker.service
+Requires=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=@DIR@/firewall/cloudflare-only.sh
+ExecStop=@DIR@/firewall/cloudflare-only.sh remove
+
+[Install]
+WantedBy=docker.service

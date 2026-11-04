@@ -10,7 +10,7 @@ services:
         ipv4_address: 172.31.251.2
 
   vault:
-    image: &caddy caddy:2.11-alpine@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f
+    image: &caddy caddy:2.11-alpine@sha256:70b3180738b46cd88e49b300d790ae448a0aca3f58edef0f000bb57d619a9ab3
     environment: {NAME: vault, SITE: vault.test, EDGE_PROXY_CIDR: 172.31.251.2/32}
     volumes: [./tests/stub.Caddyfile:/etc/caddy/Caddyfile:ro]
     networks:

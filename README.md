@@ -165,6 +165,11 @@ list and opens an issue if any differ. Then update the files and run
 switched to "DNS only" stops working while this is on, certificate renewals
 included.
 
+Other Cloudflare customers connect from the same addresses, so the firewall
+can't tell them from this zone. Each site's Caddy can also require a client
+certificate that only this zone's Cloudflare traffic presents; see
+[Authenticated Origin Pulls](docs/authenticated-origin-pulls.md).
+
 ### Configuration (`.env`)
 
 | Variable | Default | |
